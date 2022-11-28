@@ -12,6 +12,12 @@ class ChatService {
   startConversation = (data) => {
     return http.post(`${this.basePath}/conversations`, data);
   };
+
+  findMessagesByConversationId = (conversationId) => {
+    return http.get(`${this.basePath}/messages`, {
+      params: { conversationId: conversationId },
+    });
+  };
 }
 
 export default new ChatService();

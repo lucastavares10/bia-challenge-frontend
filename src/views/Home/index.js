@@ -20,13 +20,19 @@ import io from "socket.io-client";
 
 const socket = io.connect(process.env.REACT_APP_BIA_CHALLENGE_BACKEND);
 
+const pages = {
+  initial: "START_CONVERSATION",
+  loading: "LOADING",
+  conversation: "CONVERSATION",
+};
+
 const Home = (props) => {
   const [bots, setBots] = useState();
   const [selectedBot, setSelectedBot] = useState();
   const [conversation, setConversation] = useState();
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
-  const [page, setPage] = useState("LOADING");
+  const [page, setPage] = useState(pages.loading);
   const messagesEndRef = useRef();
 
   useEffect(() => {
@@ -40,6 +46,7 @@ const Home = (props) => {
 
     socket.on("send_message_to_user", (data) => {
       setMessages((prev) => [...prev, data]);
+      scrollToBottom();
     });
 
     return () => {
@@ -56,15 +63,35 @@ const Home = (props) => {
       })
       .catch((err) => {
         toast.error(err?.response?.data?.message || "Erro ao carregar bots!");
-      })
-      .finally(() => {
-        setPage("START_CONVERSATION");
       });
   }, []);
 
+  useEffect(() => {
+    const conversationId = sessionStorage.getItem("@chat/conversationid");
+
+    if (conversationId) {
+      setPage(pages.loading);
+      const botId = sessionStorage.getItem("@chat/botid");
+      const sessionId = sessionStorage.getItem("@chat/sessionid");
+
+      ChatService.findMessagesByConversationId(conversationId)
+        .then((response) => {
+          setConversation({ id: conversationId, botId, sessionId });
+          setMessages([...response.data.data]);
+          setPage(pages.conversation);
+          scrollToBottom();
+        })
+        .catch(() => {
+          setPage(pages.initial);
+        });
+    } else {
+      setPage(pages.initial);
+    }
+  }, [bots]);
+
   const startTalk = () => {
     if (selectedBot) {
-      setPage("LOADING");
+      setPage(pages.loading);
       const data = {
         botId: selectedBot,
         socketId: socket.id,
@@ -76,12 +103,13 @@ const Home = (props) => {
           setConversation(conversation);
           sessionStorage.setItem("@chat/conversationid", conversation?.id);
           sessionStorage.setItem("@chat/botid", conversation?.botId);
+          sessionStorage.setItem("@chat/sessionid", conversation?.sessionId);
 
-          setPage("CONVERSATION");
+          setPage(pages.conversation);
         })
         .catch((err) => {
           toast.error(err?.response?.data?.message || "Erro ao carregar bots!");
-          setPage("START_CONVERSATION");
+          setPage(pages.initial);
         });
     } else {
       toast.error("Selecione um bot para iniciar!");
@@ -89,6 +117,8 @@ const Home = (props) => {
   };
 
   const sendMessageToBot = () => {
+    if (!text) return;
+
     const data = {
       conversationId: conversation.id,
       from: conversation.sessionId,
@@ -98,16 +128,28 @@ const Home = (props) => {
     };
 
     setMessages((prev) => [...prev, data]);
+    scrollToBottom();
 
     socket.emit("send_message_to_bot", data);
     setText("");
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handlePressEnter = (event) => {
+    if (text !== "" && event.key === "Enter" && !event.shiftKey) {
+      sendMessageToBot();
+    }
+    if (text === "" && event.key === "Enter") event.preventDefault();
   };
 
   return (
     <HomeBox>
       <CoverBox />
       <Container>
-        {page === "LOADING" && (
+        {page === pages.loading && (
           <div className="loaderContent">
             <CircularProgress
               size={70}
@@ -117,7 +159,7 @@ const Home = (props) => {
           </div>
         )}
 
-        {page === "START_CONVERSATION" && (
+        {page === pages.initial && (
           <Grid xs={12} container justifyContent="center">
             <IoLogoSnapchat
               size={200}
@@ -168,7 +210,7 @@ const Home = (props) => {
           </Grid>
         )}
 
-        {page === "CONVERSATION" && (
+        {page === pages.conversation && (
           <Grid xs={12} container justifyContent="center">
             <Grid
               xs={10}
@@ -200,6 +242,7 @@ const Home = (props) => {
                   type="text"
                   value={text}
                   onChange={(event) => setText(event.target.value)}
+                  onKeyPress={handlePressEnter}
                   placeholder="Digite sua mensagem"
                 />
 
