@@ -1,0 +1,15 @@
+.date {
+  font-size: 10px;
+  margin-top: 10px;
+  text-align: right;
+  margin-left: 5px;
+  font-family: roboto;
+}
+
+.text {
+  font-size: 15px;
+  font-family: Raleway;
+  word-wrap: break-word;
+  margin-right: 30px;
+  white-space: pre-wrap;
+}
