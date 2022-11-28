@@ -69,6 +69,8 @@ Aplicação estará disponível em <http://localhost:3000>.
 
 <img src="./.github/images/interface.gif" alt="interface"></a>
 
+- Para iniciar uma conversa é necessário ao menos um bot cadastrado no sistema ( [Bia Challenge API](https://github.com/lucastavares10/bia-challenge-backend) )
+
 ## Contribuidores
 
 [Lucas Tavares](https://www.linkedin.com/in/lucas-tavares-a25323116/)
